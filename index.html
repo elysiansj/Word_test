@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>로하의 단어 나라 🌟</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Jua&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+<style>
+  :root {
+    --sky:#6EC6F5; --sun:#FFD166; --mint:#06D6A0;
+    --coral:#FF6B6B; --lav:#C77DFF;
+    --shadow:0 8px 32px rgba(110,198,245,.18);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:'Nunito','Jua',sans-serif;
+    background:linear-gradient(135deg,#e0f4ff 0%,#f9f3ff 50%,#fff8e1 100%);
+    min-height:100vh; display:flex; flex-direction:column; align-items:center;
+    padding:20px 10px 60px;
+  }
+
+  /* ── 스텝바 ── */
+  .step-bar{display:flex;align-items:center;justify-content:center;max-width:500px;width:100%;margin-bottom:20px;}
+  .step-item{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;}
+  .step-circle{
+    width:36px;height:36px;border-radius:50%;display:flex;align-items:center;
+    justify-content:center;font-size:1rem;font-weight:900;
+    background:#e0e0e0;color:#aaa;transition:all .3s;z-index:1;
+  }
+  .step-circle.active{background:var(--sky);color:#fff;box-shadow:0 4px 12px rgba(110,198,245,.4);}
+  .step-circle.done{background:var(--mint);color:#fff;}
+  .step-label{font-size:.68rem;font-weight:700;color:#bbb;white-space:nowrap;}
+  .step-label.active{color:#4a90e2;} .step-label.done{color:var(--mint);}
+  .step-line{flex:1;height:3px;background:#e0e0e0;margin-bottom:18px;transition:background .3s;}
+  .step-line.done{background:var(--mint);}
+
+  /* ── 페이지 헤더 ── */
+  .page-header{text-align:center;margin-bottom:20px;}
+  .page-header h1{font-size:1.9rem;font-weight:900;color:#4a90e2;text-shadow:2px 2px 0 #b3d9ff;letter-spacing:-1px;}
+  .page-header p{color:#888;font-size:.9rem;margin-top:4px;}
+
+  /* ── 카드 ── */
+  .card{
+    background:#fff;border-radius:28px;box-shadow:var(--shadow);
+    width:100%;max-width:660px;padding:26px 22px;position:relative;overflow:hidden;
+  }
+  .card::before{
+    content:'';position:absolute;top:-60px;right:-60px;width:180px;height:180px;
+    background:radial-gradient(circle,#FFD16655 0%,transparent 70%);pointer-events:none;
+  }
+  .page{display:none;} .page.active{display:block;}
+
+  /* ── 버튼 ── */
+  .btn{
+    border:none;border-radius:50px;padding:11px 20px;font-size:.95rem;font-weight:800;
+    cursor:pointer;transition:transform .15s,filter .15s;
+    font-family:'Nunito',sans-serif;white-space:nowrap;
+  }
+  .btn:hover{transform:translateY(-2px);filter:brightness(.93);}
+  .btn:active{transform:translateY(0);}
+  .btn-blue  {background:var(--sky);  color:#fff;}
+  .btn-green {background:var(--mint); color:#fff;}
+  .btn-orange{background:var(--sun);  color:#fff;}
+  .btn-red   {background:var(--coral);color:#fff;}
+  .btn-purple{background:var(--lav);  color:#fff;}
+  .btn-gray  {background:#e0e0e0;     color:#777;}
+  .btn-big   {padding:15px 34px;font-size:1.05rem;margin-top:14px;}
+
+  /* ── 입력줄 ── */
+  .input-row{display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
+  .input-row input[type="text"]{
+    flex:1;min-width:150px;padding:11px 16px;
+    border:2.5px solid #d0e8ff;border-radius:50px;
+    font-size:.95rem;font-family:'Nunito',sans-serif;outline:none;transition:border-color .2s;
+  }
+  .input-row input:focus{border-color:var(--sky);}
+
+  /* ── 업로드 ── */
+  .upload-box{
+    border:2.5px dashed #c0deff;border-radius:16px;padding:14px;
+    text-align:center;margin-bottom:14px;color:#aaa;font-size:.88rem;
+    cursor:pointer;transition:border-color .2s,background .2s;display:block;
+  }
+  .upload-box:hover{border-color:var(--sky);background:#f0f9ff;}
+  .upload-box input{display:none;}
+
+  /* ── 단어 그리드 ── */
+  .word-grid{display:flex;flex-wrap:wrap;gap:9px;margin:12px 0;min-height:36px;}
+  .word-chip{
+    border:none;border-radius:50px;padding:8px 16px;
+    font-size:.9rem;font-weight:800;cursor:pointer;
+    transition:transform .15s,box-shadow .15s;
+    font-family:'Nunito',sans-serif;box-shadow:0 3px 8px rgba(0,0,0,.07);
+  }
+  .word-chip:hover{transform:translateY(-3px) scale(1.06);box-shadow:0 6px 16px rgba(0,0,0,.12);}
+  .word-chip .del{margin-left:5px;font-size:.7rem;opacity:.55;vertical-align:middle;}
+
+  /* ── 공부 예문창 ── */
+  .display-box{
+    background:linear-gradient(120deg,#f0f9ff,#fff8f0);
+    border-radius:18px;padding:18px 20px;margin:12px 0;
+    min-height:86px;text-align:center;border:2px solid #e8f4ff;
+  }
+  .dw{font-size:1.8rem;font-weight:900;color:#4a90e2;letter-spacing:2px;}
+  .ds{font-size:1rem;color:#444;margin-top:8px;line-height:1.7;}
+  .ds .hl{background:var(--sun);color:#333;border-radius:6px;padding:1px 5px;font-weight:800;}
+  .dh{font-size:.85rem;color:#aaa;margin-top:5px;}
+
+  /* ── 예문 편집 모달 ── */
+  .modal-overlay{
+    display:none;position:fixed;inset:0;
+    background:rgba(0,0,0,.45);z-index:999;
+    justify-content:center;align-items:center;padding:20px;
+  }
+  .modal-overlay.open{display:flex;}
+  .modal{
+    background:#fff;border-radius:24px;padding:28px 24px;
+    width:100%;max-width:560px;box-shadow:0 20px 60px rgba(0,0,0,.2);
+    position:relative;
+  }
+  .modal h2{font-size:1.3rem;font-weight:900;color:#4a90e2;margin-bottom:16px;}
+  .modal-word-label{
+    font-size:1.1rem;font-weight:900;color:var(--coral);
+    margin-bottom:12px;text-align:center;
+    background:#fff3f3;border-radius:12px;padding:10px 16px;
+  }
+  .sentence-edit-row{
+    display:flex;align-items:center;gap:8px;margin-bottom:10px;
+  }
+  .sentence-edit-row input[type="text"]{
+    flex:1;padding:10px 14px;border:2px solid #d0e8ff;border-radius:12px;
+    font-size:.92rem;font-family:'Nunito',sans-serif;outline:none;
+    transition:border-color .2s;
+  }
+  .sentence-edit-row input:focus{border-color:var(--sky);}
+  .sentence-edit-row .play-s{
+    background:none;border:2px solid #d0e8ff;border-radius:50%;
+    width:36px;height:36px;font-size:1rem;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    transition:background .15s,border-color .15s;flex-shrink:0;
+  }
+  .sentence-edit-row .play-s:hover{background:#e8f4ff;border-color:var(--sky);}
+  .modal-hint{font-size:.82rem;color:#aaa;margin:8px 0 14px;line-height:1.5;}
+  .modal-btns{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:6px;}
+
+  /* ── sec title ── */
+  .sec-title{font-size:.88rem;font-weight:800;color:#999;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;}
+  .word-count{display:inline-block;background:var(--sky);color:#fff;border-radius:50px;padding:2px 9px;font-size:.76rem;font-weight:800;margin-left:6px;}
+  .divider{height:1px;background:linear-gradient(90deg,transparent,#e0e0e0,transparent);margin:14px 0;}
+
+  /* ── 프로그레스 ── */
+  .progress-wrap{margin:6px 0 12px;}
+  .progress-text{text-align:right;font-size:.85rem;color:#aaa;margin-bottom:5px;}
+  .progress-bar-bg{background:#eee;border-radius:50px;height:10px;overflow:hidden;}
+  .progress-bar-fill{
+    height:100%;border-radius:50px;
+    background:linear-gradient(90deg,var(--sky),var(--mint));
+    transition:width .4s ease;
+  }
+
+  /* ══ 복습 ══ */
+  .review-top{
+    background:linear-gradient(135deg,#fff8e1,#fff0f8);
+    border-radius:18px;padding:16px 18px;margin-bottom:14px;
+    text-align:center;border:2px solid #ffe8b0;
+  }
+  /* 빈칸 예문 (글자 보이지만 정답 단어 자리는 밑줄) */
+  .review-sentence-blank{font-size:1.05rem;color:#444;line-height:2;text-align:center;margin-top:6px;}
+  .blank-underline{
+    display:inline-block;border-bottom:3px solid var(--coral);
+    min-width:56px;vertical-align:bottom;text-align:center;
+    padding:0 4px;color:#ccc;font-size:.75rem;letter-spacing:3px;font-weight:700;
+  }
+
+  .hear-btn{
+    background:linear-gradient(135deg,var(--coral),#ff8a5b);
+    color:#fff;border:none;border-radius:50px;
+    padding:11px 26px;font-size:.95rem;font-weight:800;
+    cursor:pointer;font-family:'Nunito',sans-serif;
+    transition:transform .15s;box-shadow:0 4px 12px rgba(255,107,107,.28);
+    margin-bottom:8px;
+  }
+  .hear-btn:hover{transform:scale(1.05);} .hear-btn:active{transform:scale(.97);}
+
+  /* 슬롯 */
+  .answer-slots{display:flex;justify-content:center;flex-wrap:wrap;gap:7px;margin:12px 0;min-height:48px;}
+  .slot{
+    width:40px;height:40px;border-bottom:3px solid #bbb;
+    display:flex;align-items:center;justify-content:center;
+    font-size:1.1rem;font-weight:800;color:#333;
+    border-radius:7px 7px 0 0;background:#f5f5f5;
+    cursor:pointer;transition:background .15s,border-color .15s;user-select:none;
+  }
+  .slot.filled       {background:#e8f4ff;border-color:var(--sky);}
+  .slot.correct-slot {background:#d4fce8;border-color:var(--mint);animation:pop .3s ease;}
+  .slot.wrong-slot   {background:#ffe0e0;border-color:var(--coral);animation:shake .35s ease;}
+
+  /* 알파벳 */
+  .letter-choices{display:flex;justify-content:center;flex-wrap:wrap;gap:7px;margin:10px 0;}
+  .letter-btn{
+    width:40px;height:40px;border-radius:11px;
+    border:2.5px solid #d0e8ff;background:#fff;
+    font-size:1.05rem;font-weight:800;cursor:pointer;
+    font-family:'Nunito',sans-serif;color:#333;transition:all .15s;user-select:none;
+  }
+  .letter-btn:hover:not(:disabled){background:var(--sky);color:#fff;border-color:var(--sky);transform:scale(1.1);}
+  .letter-btn:disabled{opacity:.22;cursor:default;transform:none;}
+
+  .feedback{font-size:1.1rem;font-weight:800;min-height:26px;text-align:center;padding:5px 0;}
+  .review-nav{display:flex;justify-content:center;gap:7px;margin:8px 0 0;flex-wrap:wrap;}
+  .review-nav-dot{width:10px;height:10px;border-radius:50%;background:#ccc;transition:all .2s;}
+  .review-nav-dot.done-ok{background:var(--mint);}
+  .review-nav-dot.done-ng{background:var(--coral);}
+  .review-nav-dot.current{transform:scale(1.45);outline:2px solid var(--sky);}
+
+  /* ══ 테스트 ══ */
+  .test-qbox{
+    background:linear-gradient(135deg,#e0f4ff,#f9f3ff);
+    border-radius:18px;padding:20px;text-align:center;margin:12px 0;
+  }
+  .test-inst{font-size:.95rem;color:#666;margin-bottom:12px;}
+  .test-input{
+    width:100%;padding:14px 18px;font-size:1.2rem;font-weight:700;
+    border:3px solid #d0e8ff;border-radius:16px;text-align:center;
+    outline:none;transition:border-color .2s;
+    font-family:'Nunito',sans-serif;margin:10px 0;
+  }
+  .test-input:focus  {border-color:var(--sky);}
+  .test-input.correct{border-color:var(--mint);background:#f0fff8;}
+  .test-input.wrong  {border-color:var(--coral);background:#fff3f3;}
+
+  /* ══ 결과 ══ */
+  .result-score{font-size:3rem;font-weight:900;text-align:center;padding:14px 0 6px;}
+  .result-msg  {font-size:1rem;text-align:center;color:#666;margin-bottom:16px;}
+  .result-list {list-style:none;}
+  .result-item{
+    display:flex;align-items:center;gap:9px;
+    padding:10px 13px;border-radius:13px;margin-bottom:6px;font-size:.95rem;
+  }
+  .result-item.ok{background:#f0fff8;} .result-item.ng{background:#fff3f3;cursor:pointer;}
+  .result-item .ri-word{font-weight:800;font-size:1rem;flex:1;}
+  .result-item .ri-badge{
+    border-radius:50px;padding:2px 10px;font-size:.8rem;font-weight:700;color:#fff;
+  }
+  .ok .ri-badge{background:var(--mint);} .ng .ri-badge{background:var(--coral);}
+
+  @keyframes pop  {0%{transform:scale(1)}50%{transform:scale(1.2)}100%{transform:scale(1)}}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+
+  @media(max-width:480px){
+    .page-header h1{font-size:1.5rem;}
+    .card{padding:16px 12px;}
+    .dw{font-size:1.4rem;}
+    .slot,.letter-btn{width:34px;height:34px;font-size:.95rem;}
+    .step-label{font-size:.6rem;}
+  }
+</style>
+</head>
+<body>
+
+<!-- 스텝바 -->
+<div class="step-bar">
+  <div class="step-item">
+    <div class="step-circle active" id="sc-1">1</div>
+    <div class="step-label active"  id="sl-1">단어 공부</div>
+  </div>
+  <div class="step-line" id="sline-1"></div>
+  <div class="step-item">
+    <div class="step-circle" id="sc-2">2</div>
+    <div class="step-label" id="sl-2">단어 복습</div>
+  </div>
+  <div class="step-line" id="sline-2"></div>
+  <div class="step-item">
+    <div class="step-circle" id="sc-3">3</div>
+    <div class="step-label" id="sl-3">받아쓰기</div>
+  </div>
+  <div class="step-line" id="sline-3"></div>
+  <div class="step-item">
+    <div class="step-circle" id="sc-4">4</div>
+    <div class="step-label" id="sl-4">결과</div>
+  </div>
+</div>
+
+<!-- ════════ 1. 공부 ════════ -->
+<div id="page-study" class="page active">
+  <div class="page-header">
+    <h1>📖 로하의 단어 나라</h1>
+    <p>단어를 눌러서 소리와 예문을 들어봐요!</p>
+  </div>
+  <div class="card">
+    <div class="sec-title">📄 PDF 불러오기</div>
+    <label class="upload-box">
+      <input type="file" id="pdf-upload" accept=".pdf">
+      <span id="upload-text">📂 PDF 파일을 클릭해서 올려주세요</span>
+    </label>
+
+    <div class="sec-title">
+      ✏️ 단어 직접 입력 <span id="word-count-badge" class="word-count">0개</span>
+    </div>
+    <div class="input-row">
+      <input type="text" id="word-input" placeholder="단어 입력 후 Enter 또는 추가 버튼" autocomplete="off">
+      <button class="btn btn-blue" onclick="addWordManual()">+ 추가</button>
+    </div>
+
+    <div id="word-grid" class="word-grid">
+      <span style="color:#bbb;font-size:.85rem;margin:auto;">단어를 추가하면 여기에 나타나요 ✨</span>
+    </div>
+
+    <div class="display-box" id="display-box">
+      <div style="color:#ccc;font-size:.9rem;padding:14px 0;">👆 위 단어 버튼을 클릭해봐요!</div>
+    </div>
+
+    <div style="text-align:center;">
+      <button class="btn btn-orange" style="margin-top:12px;" onclick="openSentenceEditor()">✏️ 예문 수정하기</button>
+      <button class="btn btn-green btn-big" id="go-review-btn" style="display:none;" onclick="goToReview()">
+        📝 단어 다 외웠어요! 복습 시작!
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ 2. 복습 ════════ -->
+<div id="page-review" class="page">
+  <div class="page-header">
+    <h1>📝 단어 복습</h1>
+    <p>예문을 읽고, 알파벳을 눌러 빈칸을 채워봐요!</p>
+  </div>
+  <div class="card">
+    <div class="progress-wrap">
+      <div class="progress-text" id="review-progress-text">1 / ?</div>
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="review-progress-bar" style="width:0%"></div></div>
+    </div>
+
+    <div class="review-top">
+      <!-- 단어만 듣기 (예문 TTS 없음) -->
+      <button class="hear-btn" onclick="playReviewWordOnly()">🔊 단어 듣기</button>
+      <!-- 예문은 글자로만 표시 (정답 단어 자리는 ____) -->
+      <div class="review-sentence-blank" id="review-sentence-blank"></div>
+    </div>
+
+    <div class="answer-slots" id="answer-slots"></div>
+    <div class="letter-choices" id="letter-choices"></div>
+    <div class="feedback" id="review-feedback"></div>
+    <div class="review-nav" id="review-nav"></div>
+
+    <div style="text-align:center;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:14px;">
+      <button class="btn btn-gray" onclick="goHome()">🏠 홈으로</button>
+      <button class="btn btn-gray" onclick="skipReview()">건너뛰기 ⏭</button>
+      <button class="btn btn-green" id="review-next-btn" onclick="nextReview()" style="display:none;">다음 단어 →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ 3. 테스트 ════════ -->
+<div id="page-test" class="page">
+  <div class="page-header">
+    <h1>✍️ 받아쓰기 테스트</h1>
+    <p>소리를 듣고 단어를 입력하세요!</p>
+  </div>
+  <div class="card">
+    <div class="progress-wrap">
+      <div class="progress-text" id="test-progress-text">1 / 10</div>
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="test-progress-bar" style="width:0%"></div></div>
+    </div>
+
+    <div class="test-qbox">
+      <div class="test-inst">아래 버튼을 눌러서 단어 소리를 들어보세요 👇</div>
+      <button class="hear-btn" onclick="playTestWord()">🔊 듣기</button>
+    </div>
+
+    <input type="text" class="test-input" id="test-input"
+      placeholder="단어를 입력하고 Enter 키를 눌러요"
+      autocomplete="off" autocorrect="off" spellcheck="false">
+
+    <div class="feedback" id="test-feedback"></div>
+    <div style="text-align:center;margin-top:10px;">
+      <button class="btn btn-orange" onclick="submitAnswer()">확인 ✅</button>
+    </div>
+    <!-- 테스트 중엔 홈으로 버튼 없음 -->
+  </div>
+</div>
+
+<!-- ════════ 4. 결과 ════════ -->
+<div id="page-result" class="page">
+  <div class="page-header"><h1>🏆 결과 발표!</h1></div>
+  <div class="card">
+    <div class="result-score" id="result-score">0 / 10</div>
+    <div class="result-msg"   id="result-msg"></div>
+    <div class="divider"></div>
+    <ul class="result-list" id="result-list"></ul>
+    <div style="text-align:center;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px;">
+      <button class="btn btn-red btn-big" id="retry-review-btn" onclick="goToReviewFromResult()">🔁 틀린 단어 다시 복습</button>
+      <button class="btn btn-purple btn-big" onclick="goHome()">🏠 홈으로</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ 예문 편집 모달 ════════ -->
+<div class="modal-overlay" id="sentence-modal">
+  <div class="modal">
+    <h2>✏️ 예문 수정하기</h2>
+    <div style="margin-bottom:12px;">
+      <div class="sec-title">단어 선택</div>
+      <div id="modal-word-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;"></div>
+    </div>
+    <div id="modal-edit-area" style="display:none;">
+      <div class="modal-word-label" id="modal-current-word"></div>
+      <div class="modal-hint">
+        💡 <strong>{word}</strong> 를 입력하면 자동으로 단어로 바뀌어요.<br>
+        예) <em>I love {word} so much.</em>
+      </div>
+      <div id="sentence-rows"></div>
+      <div class="modal-btns">
+        <button class="btn btn-gray" onclick="addSentenceRow()">+ 예문 추가</button>
+        <button class="btn btn-green" onclick="saveSentences()">✅ 저장</button>
+        <button class="btn btn-blue" onclick="backToWordList()">← 단어 목록</button>
+      </div>
+    </div>
+    <div style="text-align:right;margin-top:14px;">
+      <button class="btn btn-gray" onclick="closeModal()">닫기 ✕</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════
+//  상태
+// ══════════════════════════════
+const COLORS = ['#FFD1DC','#FFEDAF','#C1E1C1','#B2CEFE','#E6CCFF','#FFD09B','#C1F0DC','#FFC8A2'];
+let words = [];          // 단어 배열
+let customSentences = {}; // { word: ["문장1","문장2",...] }
+
+let reviewList = [];
+let reviewIdx = 0;
+let reviewAnswered = [];
+let curSlots = [];
+let curLetters = [];
+
+let testQueue = [];
+let testIdx = 0;
+let testResults = [];
+let answerLocked = false;
+let wrongWords = [];
+
+let modalEditingWord = '';
+
+// ══════════════════════════════
+//  기본 예문 패턴
+// ══════════════════════════════
+const DEFAULT_PATTERNS = [
+  w => `I like the ${w}.`,
+  w => `Look at the ${w}!`,
+  w => `This is a ${w}.`,
+  w => `It is a big ${w}.`,
+  w => `I have a ${w}.`,
+  w => `She can see the ${w}.`,
+  w => `The ${w} is very nice.`,
+  w => `Can you find the ${w}?`,
+  w => `I want to touch the ${w}.`,
+  w => `My friend has a ${w}.`,
+];
+
+// 단어별 패턴 인덱스 고정
+const wordPatternIdx = {};
+function getPI(word) {
+  if (wordPatternIdx[word] === undefined)
+    wordPatternIdx[word] = Math.floor(Math.random() * DEFAULT_PATTERNS.length);
+  return wordPatternIdx[word];
+}
+
+/** 해당 단어의 예문 목록 가져오기 (커스텀 우선) */
+function getSentences(word) {
+  if (customSentences[word] && customSentences[word].length > 0)
+    return customSentences[word].map(s => s.replace(/\{word\}/gi, word));
+  return [DEFAULT_PATTERNS[getPI(word)](word)];
+}
+
+/** 예문 중 랜덤 1개 */
+function getRandSentence(word) {
+  const list = getSentences(word);
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+/** 예문에서 단어 자리를 ____ 로 교체 */
+function toBlank(sentence, word) {
+  const blank = `<span class="blank-underline">${'_ '.repeat(word.length).trim()}</span>`;
+  const re = new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'gi');
+  return sentence.replace(re, blank);
+}
+
+/** 예문에서 단어를 하이라이트 */
+function toHighlight(sentence, word) {
+  const re = new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'gi');
+  return sentence.replace(re, `<span class="hl">${word}</span>`);
+}
+
+// ══════════════════════════════
+//  스텝바
+// ══════════════════════════════
+function updateStepBar(active) {
+  for (let i=1;i<=4;i++) {
+    document.getElementById(`sc-${i}`).className = 'step-circle'+(i<active?' done':i===active?' active':'');
+    document.getElementById(`sl-${i}`).className = 'step-label' +(i<active?' done':i===active?' active':'');
+    if(i<4) document.getElementById(`sline-${i}`).className='step-line'+(i<active?' done':'');
+  }
+}
+
+// ══════════════════════════════
+//  TTS
+// ══════════════════════════════
+function speak(text, rate=0.82) {
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang='en-US'; u.rate=rate;
+  window.speechSynthesis.speak(u);
+}
+
+// ══════════════════════════════
+//  PDF
+// ══════════════════════════════
+const pdfjs = window['pdfjs-dist/build/pdf'];
+pdfjs.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
+document.getElementById('pdf-upload').onchange = async (e) => {
+  const file = e.target.files[0]; if(!file) return;
+  document.getElementById('upload-text').textContent='⏳ 불러오는 중...';
+  const reader = new FileReader();
+  reader.onload = async function() {
+    try {
+      const pdf = await pdfjs.getDocument(new Uint8Array(this.result)).promise;
+      let text='';
+      for(let i=1;i<=pdf.numPages;i++){
+        const page=await pdf.getPage(i);
+        const c=await page.getTextContent();
+        text+=c.items.map(x=>x.str).join(' ');
+      }
+      const ex=[...new Set(text.match(/\b[A-Za-z]{3,}\b/g)||[])].filter(w=>w.length<=14).slice(0,40);
+      ex.forEach(w=>addWord(w));
+      document.getElementById('upload-text').textContent=`✅ ${file.name} (${ex.length}개 추출)`;
+    } catch{
+      document.getElementById('upload-text').textContent='❌ 파일을 읽을 수 없어요';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+};
+
+// ══════════════════════════════
+//  단어 추가 / 그리드
+// ══════════════════════════════
+document.getElementById('word-input').addEventListener('keypress', e=>{
+  if(e.key==='Enter') addWordManual();
+});
+
+function addWordManual() {
+  const inp=document.getElementById('word-input');
+  const raw=inp.value.trim(); if(!raw) return;
+  raw.split(/[\s,、。]+/).forEach(w=>{
+    const c=w.replace(/[^a-zA-Z]/g,'');
+    if(c.length>=2) addWord(c);
+  });
+  inp.value=''; inp.focus();
+}
+
+function addWord(w) {
+  const lo=w.toLowerCase();
+  if(words.includes(lo)) return;
+  words.push(lo);
+  renderGrid();
+}
+
+function removeWord(w) {
+  words=words.filter(x=>x!==w);
+  renderGrid();
+}
+
+function renderGrid() {
+  const grid=document.getElementById('word-grid');
+  const badge=document.getElementById('word-count-badge');
+  const goBtn=document.getElementById('go-review-btn');
+  badge.textContent=words.length+'개';
+  if(words.length===0){
+    grid.innerHTML='<span style="color:#bbb;font-size:.85rem;margin:auto;">단어를 추가하면 여기에 나타나요 ✨</span>';
+    goBtn.style.display='none'; return;
+  }
+  grid.innerHTML='';
+  words.forEach((word,i)=>{
+    const btn=document.createElement('button');
+    btn.className='word-chip';
+    btn.style.background=COLORS[i%COLORS.length];
+    btn.innerHTML=`${word} <span class="del" onclick="event.stopPropagation();removeWord('${word}')">✕</span>`;
+    btn.onclick=()=>studyWord(word);
+    grid.appendChild(btn);
+  });
+  goBtn.style.display='inline-block';
+}
+
+// ══════════════════════════════
+//  1단계: 공부
+// ══════════════════════════════
+function studyWord(word) {
+  const sentence = getRandSentence(word);
+  document.getElementById('display-box').innerHTML=`
+    <div class="dw">📣 ${word}</div>
+    <div class="ds">${toHighlight(sentence,word)}</div>
+    <div class="dh">🔤 ${word.split('').join(' · ')}</div>
+  `;
+  speak(word);
+  setTimeout(()=>speak(sentence), 1300);
+}
+
+// ══════════════════════════════
+//  예문 편집 모달
+// ══════════════════════════════
+function openSentenceEditor() {
+  if(words.length===0){ alert('단어를 먼저 추가해주세요!'); return; }
+  renderModalWordList();
+  document.getElementById('modal-edit-area').style.display='none';
+  document.getElementById('sentence-modal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('sentence-modal').classList.remove('open');
+}
+
+function renderModalWordList() {
+  const container=document.getElementById('modal-word-list');
+  container.innerHTML='';
+  words.forEach((word,i)=>{
+    const btn=document.createElement('button');
+    btn.className='word-chip';
+    btn.style.background=COLORS[i%COLORS.length];
+    const hasCustom=customSentences[word]&&customSentences[word].length>0;
+    btn.innerHTML=`${word}${hasCustom?' ✏️':''}`;
+    btn.onclick=()=>editWordSentences(word);
+    container.appendChild(btn);
+  });
+}
+
+function editWordSentences(word) {
+  modalEditingWord=word;
+  document.getElementById('modal-current-word').textContent=`📌 단어: ${word}`;
+  document.getElementById('modal-edit-area').style.display='block';
+
+  // 현재 예문 목록 불러오기
+  const existing = customSentences[word] && customSentences[word].length>0
+    ? customSentences[word]
+    : [DEFAULT_PATTERNS[getPI(word)](word).replace(new RegExp(word,'gi'),'{word}')];
+
+  renderSentenceRows(existing);
+}
+
+function renderSentenceRows(sentences) {
+  const rows=document.getElementById('sentence-rows');
+  rows.innerHTML='';
+  sentences.forEach((s,i)=>{
+    const row=document.createElement('div');
+    row.className='sentence-edit-row';
+    row.innerHTML=`
+      <input type="text" value="${escHtml(s)}" placeholder="예) I love {word} so much." id="sent-row-${i}">
+      <button class="play-s" onclick="previewSentence(${i})" title="미리 듣기">🔊</button>
+      <button class="btn btn-red" style="padding:6px 10px;font-size:.8rem;" onclick="removeSentenceRow(${i})">✕</button>
+    `;
+    rows.appendChild(row);
+  });
+}
+
+function escHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function getSentenceRowValues() {
+  const rows=document.getElementById('sentence-rows');
+  return [...rows.querySelectorAll('input[type="text"]')].map(i=>i.value.trim()).filter(Boolean);
+}
+
+function addSentenceRow() {
+  const vals=getSentenceRowValues();
+  vals.push('');
+  renderSentenceRows(vals);
+  // 마지막 input 포커스
+  const inputs=document.getElementById('sentence-rows').querySelectorAll('input');
+  inputs[inputs.length-1].focus();
+}
+
+function removeSentenceRow(idx) {
+  const vals=getSentenceRowValues();
+  vals.splice(idx,1);
+  if(vals.length===0) vals.push('');
+  renderSentenceRows(vals);
+}
+
+function previewSentence(idx) {
+  const inp=document.getElementById(`sent-row-${idx}`);
+  if(!inp) return;
+  const text=inp.value.replace(/\{word\}/gi,modalEditingWord);
+  speak(text);
+}
+
+function saveSentences() {
+  const vals=getSentenceRowValues();
+  if(vals.length===0){ alert('예문을 최소 1개 입력해주세요!'); return; }
+  customSentences[modalEditingWord]=vals;
+  alert(`✅ "${modalEditingWord}" 예문이 저장됐어요!`);
+  backToWordList();
+}
+
+function backToWordList() {
+  document.getElementById('modal-edit-area').style.display='none';
+  renderModalWordList();
+}
+
+// ══════════════════════════════
+//  2단계: 복습
+// ══════════════════════════════
+function goToReview() {
+  if(words.length===0){ alert('단어를 먼저 추가해주세요!'); return; }
+  reviewList=[...words].sort(()=>Math.random()-.5);
+  reviewIdx=0;
+  reviewAnswered=new Array(reviewList.length).fill(null);
+  showPage('page-review'); updateStepBar(2);
+  loadReviewWord();
+}
+
+function goToReviewFromResult() {
+  if(wrongWords.length===0){ alert('틀린 단어가 없어요!'); return; }
+  reviewList=[...wrongWords];
+  reviewIdx=0;
+  reviewAnswered=new Array(reviewList.length).fill(null);
+  showPage('page-review'); updateStepBar(2);
+  loadReviewWord();
+}
+
+function loadReviewWord() {
+  const word=reviewList[reviewIdx];
+  const total=reviewList.length;
+  document.getElementById('review-progress-text').textContent=`${reviewIdx+1} / ${total}`;
+  document.getElementById('review-progress-bar').style.width=`${(reviewIdx/total)*100}%`;
+
+  // 예문 글자로 보여주되, 단어 자리만 ____
+  const sentence=getRandSentence(word);
+  document.getElementById('review-sentence-blank').innerHTML=toBlank(sentence,word);
+
+  document.getElementById('review-feedback').textContent='';
+  document.getElementById('review-next-btn').style.display='none';
+  buildSlots(word);
+  buildLetterChoices(word);
+  buildReviewNav();
+
+  // 단어만 TTS (예문은 읽지 않음)
+  playReviewWordOnly();
+}
+
+function playReviewWordOnly() {
+  speak(reviewList[reviewIdx]);
+}
+
+function buildSlots(word) {
+  curSlots=new Array(word.length).fill('');
+  const c=document.getElementById('answer-slots');
+  c.innerHTML='';
+  word.split('').forEach((_,i)=>{
+    const d=document.createElement('div');
+    d.className='slot'; d.id=`slot-${i}`;
+    d.onclick=()=>removeFromSlot(i);
+    c.appendChild(d);
+  });
+}
+
+function buildLetterChoices(word) {
+  const letters=word.toLowerCase().split('');
+  const alpha='abcdefghijklmnopqrstuvwxyz';
+  const extra=Math.min(5,Math.max(2,Math.floor(word.length*.6)));
+  for(let i=0;i<extra;i++){
+    let r,t=0;
+    do{ r=alpha[Math.floor(Math.random()*26)]; t++; }
+    while(t<30 && letters.filter(x=>x===r).length>=2);
+    letters.push(r);
+  }
+  for(let i=letters.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [letters[i],letters[j]]=[letters[j],letters[i]];
+  }
+  curLetters=letters;
+  const c=document.getElementById('letter-choices');
+  c.innerHTML='';
+  letters.forEach((letter,i)=>{
+    const btn=document.createElement('button');
+    btn.className='letter-btn'; btn.id=`lbtn-${i}`;
+    btn.textContent=letter; btn.onclick=()=>clickLetter(i);
+    c.appendChild(btn);
+  });
+}
+
+function buildReviewNav() {
+  const nav=document.getElementById('review-nav');
+  nav.innerHTML='';
+  reviewList.forEach((_,i)=>{
+    const d=document.createElement('div');
+    d.className='review-nav-dot';
+    if(i===reviewIdx) d.classList.add('current');
+    if(reviewAnswered[i]===true)  d.classList.add('done-ok');
+    if(reviewAnswered[i]===false) d.classList.add('done-ng');
+    nav.appendChild(d);
+  });
+}
+
+function clickLetter(lIdx) {
+  const btn=document.getElementById(`lbtn-${lIdx}`);
+  if(btn.disabled) return;
+  const empty=curSlots.indexOf('');
+  if(empty===-1) return;
+  btn.disabled=true;
+  curSlots[empty]={letter:curLetters[lIdx],lIdx};
+  const slot=document.getElementById(`slot-${empty}`);
+  slot.textContent=curLetters[lIdx]; slot.classList.add('filled');
+  if(!curSlots.includes('')) checkReviewAnswer();
+}
+
+function removeFromSlot(si) {
+  const data=curSlots[si]; if(!data) return;
+  const btn=document.getElementById(`lbtn-${data.lIdx}`);
+  if(btn) btn.disabled=false;
+  curSlots[si]='';
+  const slot=document.getElementById(`slot-${si}`);
+  slot.textContent=''; slot.classList.remove('filled','correct-slot','wrong-slot');
+}
+
+function checkReviewAnswer() {
+  const word=reviewList[reviewIdx];
+  const ans=curSlots.map(d=>d.letter).join('');
+  const ok=ans.toLowerCase()===word.toLowerCase();
+  const fb=document.getElementById('review-feedback');
+  if(ok){
+    fb.textContent='🌟 완성했어요!'; fb.style.color='#06D6A0';
+    curSlots.forEach((_,i)=>document.getElementById(`slot-${i}`).classList.add('correct-slot'));
+    reviewAnswered[reviewIdx]=true;
+    document.getElementById('review-next-btn').style.display='inline-block';
+    buildReviewNav();
+  } else {
+    fb.textContent='😅 다시 해봐요!'; fb.style.color='#FF6B6B';
+    curSlots.forEach((_,i)=>document.getElementById(`slot-${i}`).classList.add('wrong-slot'));
+    reviewAnswered[reviewIdx]=false;
+    setTimeout(()=>resetReviewSlots(),1500);
+  }
+}
+
+function resetReviewSlots() {
+  buildSlots(reviewList[reviewIdx]);
+  buildLetterChoices(reviewList[reviewIdx]);
+  document.getElementById('review-feedback').textContent='';
+}
+
+function nextReview() {
+  reviewIdx++;
+  if(reviewIdx>=reviewList.length){ goToTest(); return; }
+  loadReviewWord();
+}
+
+function skipReview() {
+  if(reviewAnswered[reviewIdx]===null) reviewAnswered[reviewIdx]=false;
+  reviewIdx++;
+  if(reviewIdx>=reviewList.length){ goToTest(); return; }
+  loadReviewWord();
+}
+
+// ══════════════════════════════
+//  3단계: 테스트 (랜덤 10개)
+// ══════════════════════════════
+function goToTest() {
+  const shuffled=[...words].sort(()=>Math.random()-.5);
+  testQueue=shuffled.slice(0,Math.min(10,shuffled.length));
+  testIdx=0; testResults=[];
+  showPage('page-test'); updateStepBar(3);
+  loadTestQuestion();
+}
+
+function loadTestQuestion() {
+  const ti=document.getElementById('test-input');
+  const fb=document.getElementById('test-feedback');
+  ti.value=''; ti.className='test-input';
+  fb.textContent=''; fb.style.color='';
+  const total=testQueue.length, cur=testIdx+1;
+  document.getElementById('test-progress-text').textContent=`${cur} / ${total}`;
+  document.getElementById('test-progress-bar').style.width=`${((cur-1)/total)*100}%`;
+  setTimeout(()=>speak(testQueue[testIdx]),350);
+  ti.focus();
+}
+
+function playTestWord() { speak(testQueue[testIdx]); }
+
+document.getElementById('test-input').addEventListener('keypress', e=>{
+  if(e.key==='Enter') submitAnswer();
+});
+
+function submitAnswer() {
+  if(answerLocked) return;
+  const ti=document.getElementById('test-input');
+  const ans=ti.value.trim().toLowerCase().replace(/[^a-z]/g,'');
+  const correct=testQueue[testIdx].toLowerCase();
+  const ok=ans===correct;
+  answerLocked=true;
+  ti.className='test-input '+(ok?'correct':'wrong');
+  const fb=document.getElementById('test-feedback');
+  if(ok){ fb.textContent='🌟 정답이에요!'; fb.style.color='#06D6A0'; }
+  else  { fb.innerHTML=`😅 아쉬워요! 정답: <strong>${correct}</strong>`; fb.style.color='#FF6B6B'; speak(correct); }
+  testResults.push({word:correct,correct:ok,userInput:ans});
+  setTimeout(()=>{
+    answerLocked=false; testIdx++;
+    if(testIdx<testQueue.length) loadTestQuestion();
+    else showResult();
+  }, ok?1200:2000);
+}
+
+// ══════════════════════════════
+//  4단계: 결과
+// ══════════════════════════════
+function showResult() {
+  const score=testResults.filter(r=>r.correct).length;
+  const total=testResults.length;
+  wrongWords=testResults.filter(r=>!r.correct).map(r=>r.word);
+
+  const scoreEl=document.getElementById('result-score');
+  scoreEl.textContent=`${score} / ${total}`;
+  const pct=score/total;
+  scoreEl.style.color=pct>=.8?'#06D6A0':pct>=.5?'#FFD166':'#FF6B6B';
+
+  const msgs=[
+    [1.0,'🎉 완벽해요! 로하 최고!!'],
+    [0.8,'😊 정말 잘했어요! 거의 다 맞았네요!'],
+    [0.6,'💪 좋아요! 조금만 더 연습해봐요!'],
+    [0.4,'🌈 괜찮아요, 다시 한번 해봐요!'],
+    [0.0,'😄 열심히 복습하면 금방 잘할 수 있어요!'],
+  ];
+  document.getElementById('result-msg').textContent=msgs.find(([t])=>pct>=t)[1];
+
+  const list=document.getElementById('result-list');
+  list.innerHTML='';
+  testResults.forEach(r=>{
+    const li=document.createElement('li');
+    li.className='result-item '+(r.correct?'ok':'ng');
+    li.innerHTML=`
+      <span class="ri-word">${r.word}</span>
+      ${!r.correct?`<span style="color:#aaa;font-size:.82rem;">→ ${r.userInput||'(없음)'}</span>`:''}
+      <span class="ri-badge">${r.correct?'✅ 정답':'❌ 틀림'}</span>
+    `;
+    if(!r.correct){ li.title='클릭하면 소리 들어요'; li.onclick=()=>speak(r.word); }
+    list.appendChild(li);
+  });
+
+  document.getElementById('retry-review-btn').style.display=wrongWords.length>0?'inline-block':'none';
+  showPage('page-result'); updateStepBar(4);
+}
+
+function goHome() {
+  showPage('page-study'); updateStepBar(1);
+}
+
+// ══════════════════════════════
+//  페이지 전환
+// ══════════════════════════════
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+</script>
+</body>
+</html>
